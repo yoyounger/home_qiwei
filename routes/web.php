@@ -14,3 +14,9 @@
 Route::get('/', function () {
     return view('welcome');
 });
+Route::prefix('api')->group(function (){
+    //所有商家列表
+   Route::get('shops','ApiController@index');
+   //指定商家信息
+   Route::get('shop','ApiController@show');
+});
