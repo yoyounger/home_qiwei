@@ -12,6 +12,12 @@ class VerifyCsrfToken extends Middleware
      * @var array
      */
     protected $except = [
-        //
+        'http://home_qiwei.net/api/regist',
+        'http://home_qiwei.net/api/loginCheck',
+        'http://home_qiwei.net/api/changePassword',
+        'http://home_qiwei.net/api/forgetPassword',
+        'http://home_qiwei.net/api/addAddress',
+        'http://home_qiwei.net/api/editAddress',
+        'http://home_qiwei.net/api/addCart',
     ];
 }
