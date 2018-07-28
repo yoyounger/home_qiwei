@@ -4,16 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Cart extends Model
+class OrderGoods extends Model
 {
     protected $fillable = [
-        'user_id',
+        'order_id',
         'goods_id',
         'amount',
+        'goods_name',
+        'goods_img',
+        'goods_price',
     ];
 
-    public function menu()
-    {
-        return $this->belongsTo(Menu::class,'goods_id','id');
-    }
 }

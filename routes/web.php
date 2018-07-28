@@ -41,4 +41,10 @@ Route::prefix('api')->group(function (){
     Route::post('addCart','ApiController@addCart');
     //获取购物车列表接口
     Route::get('cart','ApiController@cart');
+    //生成订单接口
+    Route::post('addOrder','ApiController@addOrder');
+    // 获得指定订单接口
+    Route::get('order','ApiController@order');
+    // 获得订单列表接口
+    Route::get('orderList','ApiController@orderList');
 });

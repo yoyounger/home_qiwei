@@ -7,8 +7,11 @@ use App\Models\Cart;
 use App\Models\Customer;
 use App\Models\Menu;
 use App\Models\MenuCategory;
+use App\Models\Order;
+use App\Models\OrderGoods;
 use App\Models\Shop;
 use App\SignatureHelper;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -90,7 +93,6 @@ class ApiController extends Controller
         //店铺商品分类
         $shopcategories = MenuCategory::where('shop_id', $id)->get();
         $cate = [];
-        $goods_list = [];
         foreach ($shopcategories as $key => $shopcategory) {
             $cate[$key]['description'] = $shopcategory->description;
             $cate[$key]['is_selected'] = $shopcategory->is_selected;
@@ -99,6 +101,7 @@ class ApiController extends Controller
             //得到菜品分类id查询相应菜品
             $shopcategory_id = $shopcategory->id;
             $menus = Menu::where('category_id', $shopcategory_id)->get();
+            $goods_list = [];
             foreach ($menus as $k => $menu) {
                 $goods_list[$k]['goods_id'] = $menu->id;
                 $goods_list[$k]['goods_name'] = $menu->goods_name;
@@ -115,10 +118,9 @@ class ApiController extends Controller
             //把菜品加入到分类列表里面
             $cate[$key]['goods_list'] = $goods_list;
         }
-        //降分类加入到数据里面
+        //分类加入到数据里面
         $data['commodity'] = $cate;
-//        dd(json_encode($data));
-        return json_encode($data);
+        return $data;
     }
 
     //验证码验证
@@ -437,6 +439,10 @@ class ApiController extends Controller
     //保存购物车
     public function addCart(Request $request)
     {
+        $res = Cart::where('user_id',auth()->user()->id)->get();
+        if ($res){
+            Cart::where('user_id',auth()->user()->id)->delete();
+        }
         $length = count($request->goodsList);
         $data = [];
         for ($i =0;$i<$length;$i++){
@@ -474,5 +480,125 @@ class ApiController extends Controller
             'totalCost'=>$totalCost
             ];
         return $cart;
+    }
+
+    //生成订单
+    public function addOrder(Request $request)
+    {
+        $address_id = $request->address_id;
+        //查找地址
+        $address = Address::where('id',$address_id)->first();
+        $user_id = auth()->user()->id;
+        //根据用户id查找购物车商品
+        $carts = Cart::where('user_id',$user_id)->get();
+        //计算价格
+        $total = 0;
+        foreach ($carts as $cart){
+            $total += $cart->menu->goods_price * $cart->amount;
+        }
+       //添加到订单表
+        $order_id = DB::transaction(function ()use ($user_id,$address,$total,$carts){
+            $order = Order::create([
+                'user_id'=>$user_id,
+                'shop_id'=>$carts[0]->menu->shop_id,
+                'sn'=>date('YmdHis').mt_rand(1000,9999),
+                'province'=>$address->province,
+                'city'=>$address->city,
+                'county'=>$address->county,
+                'address'=>$address->address,
+                'tel'=>$address->tel,
+                'name'=>$address->name,
+                'total'=>$total,
+                'status'=>0,
+                'out_trade_no'=>uniqid(),
+            ]);
+            $order_id = $order->id;
+            //创建订单商品表
+            foreach ($carts as $cart){
+                OrderGoods::create([
+                    'order_id' =>$order_id,
+                    'goods_id'=>$cart->goods_id,
+                    'amount' =>$cart->amount,
+                    'goods_name'=>$cart->menu->goods_name,
+                    'goods_img'=>$cart->menu->goods_img,
+                    'goods_price'=>$cart->menu->goods_price,
+                ]);
+            }
+            return $order_id;
+        });
+
+
+        return [
+            'status'=>'true',
+            'message'=>'生成订单成功!',
+            'order_id'=>$order_id,
+        ];
+    }
+    
+    //指定订单
+    public function order(Request $request)
+    {
+        $order = Order::where('id',$request->id)->first();
+        $order_goods =  OrderGoods::where('order_id',$request->id)->get();
+        if ($order->status == 0){
+            $order_status = '待支付';
+        }elseif ($order->status == -1){
+            $order_status = '已取消';
+        }elseif ($order->status == 1){
+            $order_status = '待发货';
+        }elseif ($order->status == 2){
+            $order_status = '待确认';
+        }else{
+            $order_status = '完成';
+        }
+        $data['id'] = $order->id;
+        $data['order_code'] = $order->sn;
+        $data['order_birth_time'] = substr($order->created_at,0,16);
+        $data['order_status'] =$order_status;
+        $data['shop_id'] = $order->shop_id;
+        $data['shop_name'] = $order->shop->shop_name;
+        $data['shop_img'] = $order->shop->shop_img;
+        foreach ($order_goods as $val){
+            unset($val['id'],$val['order_id'],$val['created_at'],$val['updated_at']);
+        }
+        $data['goods_list'] = $order_goods;
+        $data['order_price'] = $order->total;
+        $data['order_address'] = $order->province.$order->city.$order->county.$order->address;
+        return $data;
+    }
+    
+    //订单列表
+    public function orderList()
+    {
+        $orders = Order::where('user_id',auth()->user()->id)->get();
+        $data = [];
+        foreach ($orders as $key=>$order){
+            $order_goods =  OrderGoods::where('order_id',$order->id)->get();
+            if ($order->status == 0){
+                $order_status = '待支付';
+            }elseif ($order->status == -1){
+                $order_status = '已取消';
+            }elseif ($order->status == 1){
+                $order_status = '待发货';
+            }elseif ($order->status == 2){
+                $order_status = '待确认';
+            }else{
+                $order_status = '完成';
+            }
+            $data[$key]['id'] = $order->id;
+            $data[$key]['order_code'] = $order->sn;
+            $data[$key]['order_birth_time'] = substr($order->created_at,0,16);
+            $data[$key]['order_status'] =$order_status;
+            $data[$key]['shop_id'] = $order->shop_id;
+            $data[$key]['shop_name'] = $order->shop->shop_name;
+            $data[$key]['shop_img'] = $order->shop->shop_img;
+            foreach ($order_goods as $val){
+                unset($val['id'],$val['order_id'],$val['created_at'],$val['updated_at']);
+            }
+            $data[$key]['goods_list'] = $order_goods;
+            $data[$key]['order_price'] = $order->total;
+            $data[$key]['order_address'] = $order->province.$order->city.$order->county.$order->address;
+        }
+        return $data;
     }
 }

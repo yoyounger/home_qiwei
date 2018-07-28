@@ -19,5 +19,6 @@ class VerifyCsrfToken extends Middleware
         'http://home_qiwei.net/api/addAddress',
         'http://home_qiwei.net/api/editAddress',
         'http://home_qiwei.net/api/addCart',
+        'http://home_qiwei.net/api/addOrder',
     ];
 }
