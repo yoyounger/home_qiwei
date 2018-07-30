@@ -236,11 +236,19 @@ class ApiController extends Controller
             'name.required' => '用户名不能为空!',
             'password.required' => '密码不能为空!',
         ]);
+
         if ($validator->fails()){
             return [
                 'status'=>'false',
                 'message'=>$validator->errors()->first()
             ];
+        }
+        $res = Customer::where('username',$request->name)->first();
+        if (!$res || $res->status==0){
+            return ["status" => "false",
+                "message" => "登录失败!用户名错误或被禁用!",
+                "user_id" => "",
+                "username" => ""];
         }
         if (!Auth::attempt([
             'username' => $request->name,
@@ -523,6 +531,16 @@ class ApiController extends Controller
                     'goods_img'=>$cart->menu->goods_img,
                     'goods_price'=>$cart->menu->goods_price,
                 ]);
+
+                $amount = $cart->amount;
+                $menu = Menu::where('id',$cart->goods_id)->first();
+                if (date('d',time()) == 01){
+                    $data = ['month_sales'=>0];
+                }else{
+                    $num = $menu->month_sales + $amount;
+                   $data = ['month_sales'=>$num];
+                }
+                Menu::where('id',$cart->goods_id)->update($data);
             }
             return $order_id;
         });
