@@ -134,8 +134,8 @@ class ApiController extends Controller
         // *** 需用户填写部分 ***
 
         // fixme 必填: 请参阅 https://ak-console.aliyun.com/ 取得您的AK信息
-        $accessKeyId = "LTAIYevPVTpxojj8";
-        $accessKeySecret = "eDp7aBO8Qhi99gPOWvMHC7kqoUquJX";
+        $accessKeyId = "";
+        $accessKeySecret = "";
 
         // fixme 必填: 短信接收号码
         $params["PhoneNumbers"] = $tel;
@@ -560,8 +560,8 @@ class ApiController extends Controller
         // *** 需用户填写部分 ***
 
         // fixme 必填: 请参阅 https://ak-console.aliyun.com/ 取得您的AK信息
-        $accessKeyId = "LTAIYevPVTpxojj8";
-        $accessKeySecret = "eDp7aBO8Qhi99gPOWvMHC7kqoUquJX";
+        $accessKeyId = "";
+        $accessKeySecret = "";
 
         // fixme 必填: 短信接收号码
         $params["PhoneNumbers"] = $tel;
